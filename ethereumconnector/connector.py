@@ -307,6 +307,7 @@ class Connector:
             if self.node_last_block > self.last_block_height:
                 next_block_height = self.last_block_height+1
             self.log.info( "%s block processing time [%s]" % (block_height, round(time.time() - start_handle_timestamp, 4)))
+            self.log.info(" next block height %s" %next_block_height)
         except Exception as err:
             self.log.error(str(traceback.format_exc()))
             self.log.error("new block error %s" % str(err))
