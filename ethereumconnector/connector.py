@@ -355,6 +355,7 @@ class Connector:
                         # 3 check last block
                         if self.node_last_block > self.last_block_height:
                             next_block_height = self.last_block_height+1 if self.last_block_height!=-1 else self.node_last_block
+                            if not self.active_block.done(): return
                             block = await node.get_block_by_height(self, next_block_height)
                             if block:
                                 self.log.info('new block watchdog info %s' % int(block["number"], 16))
