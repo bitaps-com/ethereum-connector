@@ -28,7 +28,11 @@ async def get_last_block(app):
 
 async def get_transaction(app, tx_hash):
     try:
-        return await app.rpc.eth_getTransactionByHash(tx_hash)
+        data = await app.redis.get(tx_hash, namespace="%s.eth_getTransactionByHash" %app.network) if app.redis else None
+        if not data:
+            data = await app.rpc.eth_getTransactionByHash(tx_hash)
+            if app.redis: await app.redis.set(tx_hash, data, ttl=3600, namespace="%s.eth_getTransactionByHash" %app.network)
+        return data
     except Exception:
         app.log.error(str(traceback.format_exc()))
         app.log.error("Get transaction %s failed" % tx_hash)
@@ -44,7 +48,11 @@ async def get_block_uncles(app, block_hash, index):
 
 async def get_transaction_receipt(app, tx_hash):
     try:
-        return await app.rpc.eth_getTransactionReceipt(tx_hash)
+        data = await app.redis.get(tx_hash, namespace="%s.eth_getTransactionReceipt" %app.network) if app.redis else None
+        if not data:
+            data = await app.rpc.eth_getTransactionReceipt(tx_hash)
+            if app.redis: await app.redis.set(tx_hash, data, ttl=3600, namespace="%s.eth_getTransactionReceipt" % app.network)
+        return data
     except Exception:
         app.log.error(str(traceback.format_exc()))
         app.log.error("Get get_transaction_receipt %s failed" % tx_hash)
@@ -52,20 +60,24 @@ async def get_transaction_receipt(app, tx_hash):
 
 async def get_block_by_height(app, block_height):
     try:
-        block = await app.rpc.eth_getBlockByNumber(hex(block_height), True)
-        if block is None:
-            await asyncio.sleep(1)
-        else:
-            if not(block["number"] == hex(block_height)): raise Exception
-            await get_block_trace_and_receipt(app,block_height, block["hash"], block["transactions"])
-            uncles_data = []
-            if block["uncles"]:
-                for index in range(len(block["uncles"])):
-                    u_data = await get_block_uncles(app,block["hash"], index)
-                    uncles_data.append(u_data)
-            block['uncles_data'] = uncles_data
-            block['details'] = True
-            return block
+        data = await app.redis.get(hex(block_height), namespace="%s.eth_getBlockByNumber" % app.network) if app.redis else None
+        if not data:
+            block = await app.rpc.eth_getBlockByNumber(hex(block_height), True)
+            if block is None:
+                await asyncio.sleep(1)
+            else:
+                if not(block["number"] == hex(block_height)): raise Exception
+                await get_block_trace_and_receipt(app,block_height, block["hash"], block["transactions"])
+                uncles_data = []
+                if block["uncles"]:
+                    for index in range(len(block["uncles"])):
+                        u_data = await get_block_uncles(app,block["hash"], index)
+                        uncles_data.append(u_data)
+                block['uncles_data'] = uncles_data
+                block['details'] = True
+            data = block
+            if app.redis: await app.redis.set(hex(block_height), data, ttl=3600, namespace="%s.eth_getBlockByNumber" % app.network)
+        return data
     except Exception:
         app.log.error(str(traceback.format_exc()))
         app.log.error("Get block by height %s failed" % block_height)

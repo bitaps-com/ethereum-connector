@@ -35,6 +35,7 @@ class Connector:
                  watchdog_sleep=30,
                  network = "ERC20",
                  token = None,
+                 redis = None
                  ):
         self.loop = loop
         self.log = logger
@@ -80,6 +81,7 @@ class Connector:
         self.block_preload_cache = Cache(max_size=DEFAULT_BLOCK_PRELOAD_CACHE_SIZE)
         self.preload_workers = 10
 
+        self.redis = redis
         self.watchdog_sleep = watchdog_sleep
         self.active = True
         self.tx_subscription_id = False
