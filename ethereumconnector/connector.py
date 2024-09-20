@@ -233,6 +233,7 @@ class Connector:
 
 
     async def new_block(self, block):
+        self.log.info("task new_block %s" % block)
         if not self.active: return
         if not self.active_block.done(): return
         self.active_block = asyncio.Future()
@@ -337,8 +338,9 @@ class Connector:
                         #     except:
                         #         await connector_db.create_pool(self)
                         # 2 enable/disable subsriptions
-                        data = await node.get_last_block(self)
-                        self.node_last_block = int(data, 16)
+                        if self.node_last_block <= self.last_block_height:
+                            data = await node.get_last_block(self)
+                            self.node_last_block = int(data, 16)
                         self.log.info('%s: node last_block %s' % (self.asset, self.node_last_block) )
                         self.log.info('%s: client last_block %s' % (self.asset, self.last_block_height) )
                         self.log.info('%s: backlog %s' % (self.asset, self.node_last_block - self.last_block_height))
