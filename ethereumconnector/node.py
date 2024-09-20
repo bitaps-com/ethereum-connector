@@ -1,7 +1,7 @@
 import asyncio
 from .utils import *
 import traceback
-import time
+
 async def health_check(app):
     try:
         return await app.rpc.eth_syncing()
@@ -52,24 +52,17 @@ async def get_transaction_receipt(app, tx_hash):
 
 async def get_block_by_height(app, block_height):
     try:
-        t1 = int(time.time())
         block = await app.rpc.eth_getBlockByNumber(hex(block_height), True)
-        t2 = int(time.time())
-        app.log.info("eth_getBlockByNumber [%s] " %(t2-t1))
         if block is None:
-            app.log.info("block is None")
-            await asyncio.sleep(0.1)
+            await asyncio.sleep(1)
         else:
             if not(block["number"] == hex(block_height)): raise Exception
-            t3 = int(time.time())
             await get_block_trace_and_receipt(app,block_height, block["hash"], block["transactions"])
             uncles_data = []
             if block["uncles"]:
                 for index in range(len(block["uncles"])):
                     u_data = await get_block_uncles(app,block["hash"], index)
                     uncles_data.append(u_data)
-            t4 = int(time.time())
-            app.log.info("get_block_trace_and_receipt [%s] " % (t4 - t3))
             block['uncles_data'] = uncles_data
             block['details'] = True
             return block

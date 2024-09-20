@@ -233,7 +233,6 @@ class Connector:
 
 
     async def new_block(self, block):
-        self.log.info("task new_block %s" % int(block["number"], 16))
         if not self.active: return
         if not self.active_block.done(): return
         self.active_block = asyncio.Future()
@@ -308,7 +307,6 @@ class Connector:
             if self.node_last_block > self.last_block_height:
                 next_block_height = self.last_block_height+1
             self.log.info( "%s block processing time [%s]" % (block_height, round(time.time() - start_handle_timestamp, 4)))
-            self.log.info(" next block height %s" %next_block_height)
         except Exception as err:
             self.log.error(str(traceback.format_exc()))
             self.log.error("new block error %s" % str(err))
@@ -330,17 +328,16 @@ class Connector:
             try:
                 while True:
                     try:
-                        self.log.info('%s: watchdog_task' % self.asset)
                         # 1 check database connection
-                        # if self.postgresql_dsn:
-                        #     try:
-                        #         await connector_db.ping(self)
-                        #     except:
-                        #         await connector_db.create_pool(self)
+                        if self.postgresql_dsn:
+                            try:
+                                await connector_db.ping(self)
+                            except:
+                                await connector_db.create_pool(self)
                         # 2 enable/disable subsriptions
-                        if self.node_last_block <= self.last_block_height:
-                            data = await node.get_last_block(self)
-                            self.node_last_block = int(data, 16)
+                        data = await node.get_last_block(self)
+                        self.node_last_block = int(data, 16)
+
                         self.log.info('%s: node last_block %s' % (self.asset, self.node_last_block) )
                         self.log.info('%s: client last_block %s' % (self.asset, self.last_block_height) )
                         self.log.info('%s: backlog %s' % (self.asset, self.node_last_block - self.last_block_height))
@@ -353,9 +350,8 @@ class Connector:
                                 if not self.block_subscription_id: await websocket.subscribe_blocks(self)
                                 if not self.tx_subscription_id: await websocket.subscribe_transactions(self)
                         # 3 check last block
-                        if self.node_last_block > self.last_block_height:
+                        if self.node_last_block > self.last_block_height and self.active_block.done():
                             next_block_height = self.last_block_height+1 if self.last_block_height!=-1 else self.node_last_block
-                            if not self.active_block.done(): return
                             block = await node.get_block_by_height(self, next_block_height)
                             if block:
                                 self.log.info('new block watchdog info %s' % int(block["number"], 16))
