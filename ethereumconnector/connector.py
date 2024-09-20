@@ -90,9 +90,11 @@ class Connector:
         if network and token:
             postfix = '_'+network+'_' + token
             self.asset = network+'_' + token
+            self.network = network
         else:
             postfix = ''
             self.asset = ''
+            self.network = ''
         self.block_table = 'connector_block'+postfix
         self.transaction_table = 'connector_transaction'+postfix
 
