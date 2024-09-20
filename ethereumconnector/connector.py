@@ -233,7 +233,7 @@ class Connector:
 
 
     async def new_block(self, block):
-        self.log.info("task new_block %s" % block)
+        self.log.info("task new_block %s" % int(block["number"], 16))
         if not self.active: return
         if not self.active_block.done(): return
         self.active_block = asyncio.Future()
