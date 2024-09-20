@@ -340,6 +340,7 @@ class Connector:
                         self.node_last_block = int(data, 16)
                         self.log.info('%s: node last_block %s' % (self.asset, self.node_last_block) )
                         self.log.info('%s: client last_block %s' % (self.asset, self.last_block_height) )
+                        self.log.info('%s: backlog %s' % (self.asset, self.node_last_block - self.last_block_height))
 
                         if self.client.lower() != 'tron':
                             if self.node_last_block > self.last_block_height + 1000:
