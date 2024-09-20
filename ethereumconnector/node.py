@@ -57,7 +57,8 @@ async def get_block_by_height(app, block_height):
         t2 = int(time.time())
         app.log.info("eth_getBlockByNumber [%s] " %(t2-t1))
         if block is None:
-            await asyncio.sleep(1)
+            app.log.info("block is None")
+            await asyncio.sleep(0.1)
         else:
             if not(block["number"] == hex(block_height)): raise Exception
             t3 = int(time.time())
