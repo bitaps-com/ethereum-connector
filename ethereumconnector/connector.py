@@ -326,6 +326,7 @@ class Connector:
             try:
                 while True:
                     try:
+                        self.log.info('%s: watchdog_task' % self.asset)
                         # 1 check database connection
                         if self.postgresql_dsn:
                             try:
@@ -335,6 +336,9 @@ class Connector:
                         # 2 enable/disable subsriptions
                         data = await node.get_last_block(self)
                         self.node_last_block = int(data, 16)
+                        self.log.info('%s: node last_block %s' % (self.asset, self.node_last_block) )
+                        self.log.info('%s: client last_block %s' % (self.asset, self.last_block_height) )
+
                         if self.client.lower() != 'tron':
                             if self.node_last_block > self.last_block_height + 1000:
                                 if self.block_subscription_id: await websocket.unsubscribe_blocks(self)
