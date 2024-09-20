@@ -102,10 +102,11 @@ async def get_block_trace_and_receipt(app, block_height, block_hash, transaction
                 if isinstance(app.get_receipts, str):
                     filter = app.get_receipts
                 tx_for_receips = [tx for tx in transactions if filter and tx["to"]==filter]
-                tx_receipt_tasks = [app.loop.create_task(get_transaction_receipt(app,tx["hash"])) for tx in tx_for_receips]
-                done, pending = await asyncio.wait(tx_receipt_tasks, return_when=asyncio.FIRST_EXCEPTION)
-                if pending: raise
-                for future in done: block_receipt.append(future.result())
+                if tx_for_receips:
+                    tx_receipt_tasks = [app.loop.create_task(get_transaction_receipt(app,tx["hash"])) for tx in tx_for_receips]
+                    done, pending = await asyncio.wait(tx_receipt_tasks, return_when=asyncio.FIRST_EXCEPTION)
+                    if pending: raise
+                    for future in done: block_receipt.append(future.result())
             for tx in block_receipt:
                 if not tx['transactionHash'] in receipt:receipt[tx['transactionHash']] = {}
                 receipt[tx['transactionHash']] = tx
