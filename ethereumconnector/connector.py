@@ -294,6 +294,7 @@ class Connector:
             if not 'details' in block:
                 block = await node.get_block_by_height(self,block_height)
                 if not block: raise Exception('cant get block by height')
+            self.log.info( "%s block processing time step1 [%s]" % (block_height, round(time.time() - start_handle_timestamp, 4)))
             if block["transactions"]:
                 self.active_block_txs = asyncio.Future()
                 self.active_block_await_tx_list = [tx["hash"] for tx in block["transactions"]]
@@ -301,8 +302,14 @@ class Connector:
                     self.log.debug("block new transaction %s" % tx["hash"])
                     self.loop.create_task(self.new_transaction(tx["hash"], tx=tx, block_height=block_height, block_time=block_time))
                 await asyncio.wait_for(self.active_block_txs, timeout=self.block_handler_timeout)
+            self.log.info( "%s block processing time step2 [%s]" % (block_height, round(time.time() - start_handle_timestamp, 4)))
+
             await handler.before_block(self, block)
+            self.log.info( "%s block processing time step3 [%s]" % (block_height, round(time.time() - start_handle_timestamp, 4)))
+
             await handler.block(self, block, db_pool=self.db_pool)
+            self.log.info( "%s block processing time step4 [%s]" % (block_height, round(time.time() - start_handle_timestamp, 4)))
+
             for tx in block["transactions"]:
                 tx_cache = self.pending_tx_cache.pop(hex_to_bytes(tx["hash"]))
                 self.confirmed_tx_cache.set(hex_to_bytes(tx["hash"]), (block_height, tx_cache[1]))
