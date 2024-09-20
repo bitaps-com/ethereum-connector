@@ -31,7 +31,7 @@ async def get_transaction(app, tx_hash):
         data = await app.redis.get(tx_hash, namespace="%s.eth_getTransactionByHash" %app.network) if app.redis else None
         if not data:
             data = await app.rpc.eth_getTransactionByHash(tx_hash)
-            if app.redis: await app.redis.set(tx_hash, data, ttl=3600, namespace="%s.eth_getTransactionByHash" %app.network)
+            if app.redis: await app.redis.set(tx_hash, data, ttl=3600*6, namespace="%s.eth_getTransactionByHash" %app.network)
         return data
     except Exception:
         app.log.error(str(traceback.format_exc()))
@@ -51,7 +51,7 @@ async def get_transaction_receipt(app, tx_hash):
         data = await app.redis.get(tx_hash, namespace="%s.eth_getTransactionReceipt" %app.network) if app.redis else None
         if not data:
             data = await app.rpc.eth_getTransactionReceipt(tx_hash)
-            if app.redis: await app.redis.set(tx_hash, data, ttl=3600, namespace="%s.eth_getTransactionReceipt" % app.network)
+            if app.redis: await app.redis.set(tx_hash, data, ttl=3600*6, namespace="%s.eth_getTransactionReceipt" % app.network)
         return data
     except Exception:
         app.log.error(str(traceback.format_exc()))
@@ -76,7 +76,7 @@ async def get_block_by_height(app, block_height):
                 block['uncles_data'] = uncles_data
                 block['details'] = True
             data = block
-            if app.redis: await app.redis.set(hex(block_height), data, ttl=3600, namespace="%s.eth_getBlockByNumber" % app.network)
+            if app.redis: await app.redis.set(hex(block_height), data, ttl=3600*6, namespace="%s.eth_getBlockByNumber" % app.network)
         return data
     except Exception:
         app.log.error(str(traceback.format_exc()))
