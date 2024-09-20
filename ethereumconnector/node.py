@@ -83,30 +83,39 @@ async def get_block_trace_and_receipt(app, block_height, block_hash, transaction
                 if not tx['transactionHash'] in trace: trace[tx['transactionHash']] = list()
                 trace[tx['transactionHash']].append(tx)
         receipt = {}
-        if CLIENTS[app.client]["getBlockReceipts"]["method"]:
-            func_name = CLIENTS[app.client]["getBlockReceipts"]["method"]
-            func = getattr(app.rpc, func_name)
-            if CLIENTS[app.client]["getBlockReceipts"]["params"] == "height":
-                block_receipt = await func(hex(block_height))
-            elif CLIENTS[app.client]["getBlockReceipts"]["params"] == "hash":
-                block_receipt = await func(block_hash)
+        if app.get_receipts:
+            if CLIENTS[app.client]["getBlockReceipts"]["method"]:
+                func_name = CLIENTS[app.client]["getBlockReceipts"]["method"]
+                func = getattr(app.rpc, func_name)
+                if CLIENTS[app.client]["getBlockReceipts"]["params"] == "height":
+                    block_receipt = await func(hex(block_height))
+                elif CLIENTS[app.client]["getBlockReceipts"]["params"] == "hash":
+                    block_receipt = await func(block_hash)
+                else:
+                    CLIENTS[app.client]["getBlockReceipts"]["method"] = None
+                    raise Exception('unknown getBlockReceipts functions setup params for %s client' % app.client)
+                if not (block_receipt[0]['blockHash'] == block_hash):
+                    raise Exception('block receipt hash %s block hash %s' % (block_receipt[0]['blockHash'], block_hash))
             else:
-                CLIENTS[app.client]["getBlockReceipts"]["method"] = None
-                raise Exception('unknown getBlockReceipts functions setup params for %s client' % app.client)
-            if not (block_receipt[0]['blockHash'] == block_hash):
-                raise Exception('block receipt hash %s block hash %s' % (block_receipt[0]['blockHash'], block_hash))
-        else:
-            block_receipt = []
-            tx_receipt_tasks = [app.loop.create_task(get_transaction_receipt(app,tx["hash"])) for tx in transactions]
-            done, pending = await asyncio.wait(tx_receipt_tasks, return_when=asyncio.FIRST_EXCEPTION)
-            if pending: raise
-            for future in done: block_receipt.append(future.result())
-        for tx in block_receipt:
-            if not tx['transactionHash'] in receipt:receipt[tx['transactionHash']] = {}
-            receipt[tx['transactionHash']] = tx
+                block_receipt = []
+                filter = None
+                if isinstance(app.get_receipts, str):
+                    filter = app.get_receipts
+                tx_for_receips = [tx for tx in transactions if filter and tx["to"]==filter]
+                tx_receipt_tasks = [app.loop.create_task(get_transaction_receipt(app,tx["hash"])) for tx in tx_for_receips]
+                done, pending = await asyncio.wait(tx_receipt_tasks, return_when=asyncio.FIRST_EXCEPTION)
+                if pending: raise
+                for future in done: block_receipt.append(future.result())
+            for tx in block_receipt:
+                if not tx['transactionHash'] in receipt:receipt[tx['transactionHash']] = {}
+                receipt[tx['transactionHash']] = tx
         for tx in transactions:
-            tx.update(receipt[tx['hash']])
-            tx['status']= int(tx['status'],16)
+            if tx['hash'] in receipt:
+                tx.update(receipt[tx['hash']])
+            if 'status' in tx:
+                tx['status']= int(tx['status'],16)
+            else:
+                tx['status'] = 1
             if tx['hash'] in trace:
                 tx['trace'] = trace[tx['hash']]
                 if 'error' in trace[tx['hash']][0]:

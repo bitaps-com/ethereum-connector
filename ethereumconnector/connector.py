@@ -16,6 +16,7 @@ class Connector:
                  trace = False,
                  subscribe_blocks = True,
                  subscribe_txs = True,
+                 get_receipts = True,
                  connector_db = True,  # use connector database
                  postgresql_dsn = None,  # connector database settings
                  postgresql_pool_max_size=50,  # connector database settings
@@ -51,6 +52,7 @@ class Connector:
                 logger.warning("trace module for client %s is not supported" % client)
         self.subscribe_blocks = subscribe_blocks
         self.subscribe_txs = subscribe_txs
+        self.get_receipts = get_receipts
         self.connector_db = connector_db
         self.postgresql_dsn = postgresql_dsn
         self.postgresql_pool_max_size = postgresql_pool_max_size
@@ -328,11 +330,11 @@ class Connector:
                     try:
                         self.log.info('%s: watchdog_task' % self.asset)
                         # 1 check database connection
-                        if self.postgresql_dsn:
-                            try:
-                                await connector_db.ping(self)
-                            except:
-                                await connector_db.create_pool(self)
+                        # if self.postgresql_dsn:
+                        #     try:
+                        #         await connector_db.ping(self)
+                        #     except:
+                        #         await connector_db.create_pool(self)
                         # 2 enable/disable subsriptions
                         data = await node.get_last_block(self)
                         self.node_last_block = int(data, 16)
