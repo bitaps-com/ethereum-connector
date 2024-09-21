@@ -32,6 +32,8 @@ async def get_transaction(app, tx_hash):
         if not data:
             data = await app.rpc.eth_getTransactionByHash(tx_hash)
             if app.redis: await app.redis.set(tx_hash, data, ttl=3600*6, namespace="%s.eth_getTransactionByHash" %app.network)
+        else:
+            app.log.info("eth_getTransactionByHash %s from redis" %tx_hash)
         return data
     except Exception:
         app.log.error(str(traceback.format_exc()))
