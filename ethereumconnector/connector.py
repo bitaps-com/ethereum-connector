@@ -5,6 +5,7 @@ import time
 from . import websocket,handler,connector_db,connector_cache,node
 from .utils import *
 import traceback
+import logging
 
 class Connector:
     def __init__(self,
@@ -91,10 +92,11 @@ class Connector:
             postfix = '_'+network+'_' + token
             self.asset = network+'_' + token
             self.network = network
+            self.log = logging.LoggerAdapter(logger, extra={'asset': self.asset})
         else:
             postfix = ''
             self.asset = ''
-            self.network = ''
+            self.network = network
         self.block_table = 'connector_block'+postfix
         self.transaction_table = 'connector_transaction'+postfix
 
