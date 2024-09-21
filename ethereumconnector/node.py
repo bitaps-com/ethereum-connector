@@ -32,8 +32,6 @@ async def get_transaction(app, tx_hash):
         if not data:
             data = await app.rpc.eth_getTransactionByHash(tx_hash)
             if app.redis: await app.redis.set(tx_hash, data, ttl=3600*6, namespace="%s.eth_getTransactionByHash" %app.network)
-        else:
-            app.log.info("eth_getTransactionByHash %s from redis" %tx_hash)
         return data
     except Exception:
         app.log.error(str(traceback.format_exc()))
@@ -79,8 +77,6 @@ async def get_block_by_height(app, block_height):
                 block['details'] = True
             data = block
             if app.redis: await app.redis.set(hex(block_height), data, ttl=3600*6, namespace="%s.eth_getBlockByNumber" % app.network)
-        else:
-            app.log.info("eth_getBlockByNumber %s from redis" %block_height)
         return data
     except Exception:
         app.log.error(str(traceback.format_exc()))
