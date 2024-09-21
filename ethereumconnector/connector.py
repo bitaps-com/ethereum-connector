@@ -301,7 +301,7 @@ class Connector:
                     self.log.debug("block new transaction %s" % tx["hash"])
                     self.loop.create_task(self.new_transaction(tx["hash"], tx=tx, block_height=block_height, block_time=block_time))
                 await asyncio.wait_for(self.active_block_txs, timeout=self.block_handler_timeout)
-            self.log.info( "%s transactions processing time [%s]" % (block_height, round(time.time() - start_handle_timestamp, 4)))
+            self.log.info( "%s transactions [%s] processing time [%s]" % (block_height, len(block["transactions"]), round(time.time() - start_handle_timestamp, 4)))
             await handler.before_block(self, block)
             await handler.block(self, block, db_pool=self.db_pool)
             for tx in block["transactions"]:
