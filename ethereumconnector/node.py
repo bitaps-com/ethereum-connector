@@ -79,6 +79,8 @@ async def get_block_by_height(app, block_height):
                 block['details'] = True
             data = block
             if app.redis: await app.redis.set(hex(block_height), data, ttl=3600*6, namespace="%s.eth_getBlockByNumber" % app.network)
+        else:
+            app.log.info("eth_getBlockByNumber %s from redis" %block_height)
         return data
     except Exception:
         app.log.error(str(traceback.format_exc()))
@@ -112,15 +114,10 @@ async def get_block_trace_and_receipt(app, block_height, block_hash, transaction
                     raise Exception('block receipt hash %s block hash %s' % (block_receipt[0]['blockHash'], block_hash))
             else:
                 block_receipt = []
-                filter = None
-                if isinstance(app.get_receipts, str):
-                    filter = app.get_receipts
-                tx_for_receips = [tx for tx in transactions if filter and tx["to"]==filter]
-                if tx_for_receips:
-                    tx_receipt_tasks = [app.loop.create_task(get_transaction_receipt(app,tx["hash"])) for tx in tx_for_receips]
-                    done, pending = await asyncio.wait(tx_receipt_tasks, return_when=asyncio.FIRST_EXCEPTION)
-                    if pending: raise
-                    for future in done: block_receipt.append(future.result())
+                tx_receipt_tasks = [app.loop.create_task(get_transaction_receipt(app,tx["hash"])) for tx in transactions]
+                done, pending = await asyncio.wait(tx_receipt_tasks, return_when=asyncio.FIRST_EXCEPTION)
+                if pending: raise
+                for future in done: block_receipt.append(future.result())
             for tx in block_receipt:
                 if not tx['transactionHash'] in receipt:receipt[tx['transactionHash']] = {}
                 receipt[tx['transactionHash']] = tx
