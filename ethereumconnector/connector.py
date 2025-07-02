@@ -35,7 +35,8 @@ class Connector:
                  watchdog_sleep=30,
                  network = "ERC20",
                  token = None,
-                 redis = None
+                 redis = None,
+                 redis_ttl = 3600
                  ):
         self.loop = loop
         self.log = logger
@@ -82,6 +83,7 @@ class Connector:
         self.preload_workers = 10
 
         self.redis = redis
+        self.redis_ttl = redis_ttl
         self.watchdog_sleep = watchdog_sleep
         self.active = True
         self.tx_subscription_id = False
@@ -210,7 +212,7 @@ class Connector:
                     # new transaction
                     if tx is None:
                         try:
-                            tx = await node.get_transaction(self,tx_hash)
+                            tx = await node.get_transaction(self,tx_hash, self.redis_ttl)
                             if not(tx_hash == tx["hash"]): raise Exception
                         except:
                             if tx_hash in self.active_block_await_tx_list:
