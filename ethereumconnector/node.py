@@ -26,12 +26,12 @@ async def get_last_block(app):
         app.log.error("Get last_block failed")
         raise
 
-async def get_transaction(app, tx_hash, ttl):
+async def get_transaction(app, tx_hash):
     try:
         data = await app.redis.get(tx_hash, namespace="%s.eth_getTransactionByHash" %app.network) if app.redis else None
         if not data:
             data = await app.rpc.eth_getTransactionByHash(tx_hash)
-            if app.redis: await app.redis.set(tx_hash, data, ttl=ttl, namespace="%s.eth_getTransactionByHash" %app.network)
+            if app.redis: await app.redis.set(tx_hash, data, ttl=app.redis_ttl, namespace="%s.eth_getTransactionByHash" %app.network)
         return data
     except Exception:
         app.log.error(str(traceback.format_exc()))
@@ -46,25 +46,25 @@ async def get_block_uncles(app, block_hash, index):
         app.log.error("Get uncle %s failed" % block_hash)
         raise
 
-async def get_transaction_receipt(app, tx_hash, ttl):
+async def get_transaction_receipt(app, tx_hash):
     try:
         data = await app.redis.get(tx_hash, namespace="%s.eth_getTransactionReceipt" %app.network) if app.redis else None
         if not data:
             data = await app.rpc.eth_getTransactionReceipt(tx_hash)
-            if app.redis: await app.redis.set(tx_hash, data, ttl=ttl, namespace="%s.eth_getTransactionReceipt" % app.network)
+            if app.redis: await app.redis.set(tx_hash, data, ttl=app.redis_ttl, namespace="%s.eth_getTransactionReceipt" % app.network)
         return data
     except Exception:
         app.log.error(str(traceback.format_exc()))
         app.log.error("Get get_transaction_receipt %s failed" % tx_hash)
         raise
 
-async def get_block_logs(app, block_hash, ttl):
+async def get_block_logs(app, block_hash):
     try:
         data = await app.redis.get(block_hash, namespace="%s.eth_getLogs" %app.network) if app.redis else None
         if not data:
             params = {"blockHash": block_hash}
             data = await app.rpc.eth_getLogs(params)
-            if app.redis: await app.redis.set(block_hash, data, ttl=ttl, namespace="%s.eth_getLogs" % app.network)
+            if app.redis: await app.redis.set(block_hash, data, ttl=app.redis_ttl, namespace="%s.eth_getLogs" % app.network)
         return data
     except Exception:
         app.log.error(str(traceback.format_exc()))
@@ -123,7 +123,7 @@ async def get_block_trace_and_receipt(app, block_height, block_hash, transaction
                     raise Exception('block receipt hash %s block hash %s' % (block_receipt[0]['blockHash'], block_hash))
             else:
                 block_receipt = []
-                tx_receipt_tasks = [app.loop.create_task(get_transaction_receipt(app,tx["hash"], app.redis_ttl)) for tx in transactions]
+                tx_receipt_tasks = [app.loop.create_task(get_transaction_receipt(app,tx["hash"])) for tx in transactions]
                 done, pending = await asyncio.wait(tx_receipt_tasks, return_when=asyncio.FIRST_EXCEPTION)
                 if pending: raise
                 for future in done: block_receipt.append(future.result())
@@ -131,7 +131,7 @@ async def get_block_trace_and_receipt(app, block_height, block_hash, transaction
                 if not tx['transactionHash'] in receipt:receipt[tx['transactionHash']] = {}
                 receipt[tx['transactionHash']] = tx
         else: #get only logs
-            block_logs = await get_block_logs(app, block_hash, app.redis_ttl)
+            block_logs = await get_block_logs(app, block_hash)
             for log in block_logs:
                 try:
                     receipt[log['transactionHash']]

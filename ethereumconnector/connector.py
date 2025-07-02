@@ -212,7 +212,7 @@ class Connector:
                     # new transaction
                     if tx is None:
                         try:
-                            tx = await node.get_transaction(self,tx_hash, self.redis_ttl)
+                            tx = await node.get_transaction(self,tx_hash)
                             if not(tx_hash == tx["hash"]): raise Exception
                         except:
                             if tx_hash in self.active_block_await_tx_list:
