@@ -289,7 +289,7 @@ class Connector:
                         await handler.orphan(self,orphan_block_height,orphan_bin_block_hash, db_pool=self.db_pool)
                         connector_cache.remove_orphan(self,orphan_block_height,orphan_bin_block_hash)
                         self.log.warning("removed orphan %s hash 0x%s" % (orphan_block_height, hexlify(orphan_bin_block_hash).decode()))
-                        if self.redis: await self.redis.delete(hex(block_height),namespace="%s.eth_getBlockByNumber" % self.network)
+                        if self.redis: await self.redis.delete(hex(orphan_block_height),namespace="%s.eth_getBlockByNumber" % self.network)
                         self.last_block_height -= 1
                         next_block_height = self.last_block_height + 1
                         if self.active_block_txs: self.active_block_txs.cancel()
