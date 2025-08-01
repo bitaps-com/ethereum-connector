@@ -22,8 +22,8 @@ async def client(app):
             app.ws = await session.ws_connect(app.socket_url, autoclose=True, autoping=True)
             app.connected.set_result(True)
             app.log.info('websocket connected')
-            if app.tx_subscription_id: await unsubscribe_blocks(app)
-            if app.block_subscription_id: await unsubscribe_transactions(app)
+            if app.block_subscription_id: await unsubscribe_blocks(app)
+            if app.tx_subscription_id: await unsubscribe_transactions(app)
             while True:
                 msg = await app.ws.receive()
                 if msg.type == aiohttp.WSMsgType.TEXT:
@@ -137,6 +137,7 @@ async def subscribe_blocks(app):
 async def unsubscribe_blocks(app):
     if app.subscribe_blocks:
         await app.ws.send_str('{"jsonrpc":"2.0","id": 3, "method":"eth_unsubscribe", "params": ["%s"]}' % app.block_subscription_id)
+        app.tx_subscription_id = None
         app.log.info("Blocks subscription canceled")
 
 async def subscribe_transactions(app):
@@ -146,4 +147,5 @@ async def subscribe_transactions(app):
 async def unsubscribe_transactions(app):
     if app.subscribe_txs:
         await app.ws.send_str('{"jsonrpc":"2.0","id": 4, "method": "eth_unsubscribe", "params": ["%s"]}' % app.tx_subscription_id)
+        app.tx_subscription_id = None
         app.log.info("Transactions subscription canceled")
