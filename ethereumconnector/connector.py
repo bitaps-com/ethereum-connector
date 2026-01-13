@@ -22,6 +22,8 @@ class Connector:
                  postgresql_pool_max_size=50,  # connector database settings
                  expired_pending_tx_time = DEFAULT_EXPIRED_PENDING_TX_TIME,
                  block_handler_timeout = DEFAULT_BLOCK_HANDLER_TIMEOUT,
+                 confirmed_tx_cache_size = DEFAULT_CONFIRMED_TX_CACHE_SIZE,
+                 block_cache_size = DEFAULT_BLOCK_CACHE_SIZE,
                  preload=False,  # initialize blocks preload
                  start_block=None,  # start block height sync, if not specified - use current block
                  rollback_block=None,  # used for long orphans chain
@@ -64,9 +66,9 @@ class Connector:
         else:
             if not self.postgresql_dsn:
                 raise Exception("incorrect postgresql_dsn config")
-        self.confirmed_tx_cache = Cache(max_size=DEFAULT_CONFIRMED_TX_CACHE_SIZE)
+        self.confirmed_tx_cache = Cache(max_size=confirmed_tx_cache_size)
         self.pending_tx_cache = Cache(max_size=0) #unlimited
-        self.block_cache = Cache(max_size=DEFAULT_BLOCK_CACHE_SIZE)
+        self.block_cache = Cache(max_size=block_cache_size)
         self.start_block = start_block
         self.rollback_block=rollback_block
         self.tx_handler = tx_handler
