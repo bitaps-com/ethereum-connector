@@ -57,32 +57,24 @@ async def cache_load_handler(app, conn):
     [app.block_cache.set(row["hash"], row["height"]) for row in rows]
 
 async def block_handler(app, block, conn):
-    stmt = await conn.prepare(f"INSERT INTO {app.block_table} (hash, height, previous_hash, timestamp) VALUES ($1, $2, $3, $4);")
-    await stmt.fetch(hex_to_bytes(block["hash"]), int(block["number"], 16), hex_to_bytes(block["parentHash"]) if "parentHash" in block else None, int(block['timestamp'], 16))
+    await conn.execute(f"INSERT INTO {app.block_table} (hash, height, previous_hash, timestamp) VALUES ($1, $2, $3, $4);", hex_to_bytes(block["hash"]), int(block["number"], 16), hex_to_bytes(block["parentHash"]) if "parentHash" in block else None, int(block['timestamp'], 16))
     tx_hash_list = [hex_to_bytes(tx["hash"]) for tx in block["transactions"]]
-    stmt = await conn.prepare(f"UPDATE {app.transaction_table} SET height = $1, timestamp=$2  WHERE hash = ANY ($3);")
-    await stmt.fetch(int(block["number"], 16), int(block['timestamp'], 16), tx_hash_list)
+    await conn.execute(f"UPDATE {app.transaction_table} SET height = $1, timestamp=$2  WHERE hash = ANY ($3);", int(block["number"], 16), int(block['timestamp'], 16), tx_hash_list)
 
 async def tx_handler(app, tx, conn):
-    stmt = await conn.prepare(f"INSERT INTO {app.transaction_table} (hash, timestamp, last_timestamp, affected) VALUES ($1, $2, $3, $4);")
-    await stmt.fetch(hex_to_bytes(tx["hash"]), tx["timestamp"], tx["timestamp"], asyncpg.BitString('1') if tx["handler_result"] else asyncpg.BitString('0'))
+    await conn.execute(f"INSERT INTO {app.transaction_table} (hash, timestamp, last_timestamp, affected) VALUES ($1, $2, $3, $4) ON CONFLICT (hash) DO NOTHING;", hex_to_bytes(tx["hash"]), tx["timestamp"], tx["timestamp"], asyncpg.BitString('1') if tx["handler_result"] else asyncpg.BitString('0'))
 
 async def pending_tx_update_handler(app, bin_tx_hash,last_seen_timestamp,conn):
-    stmt = await conn.prepare(f"UPDATE {app.transaction_table} SET last_timestamp = $1  WHERE hash=$2;")
-    await stmt.fetch(last_seen_timestamp,bin_tx_hash)
+    await conn.execute(f"UPDATE {app.transaction_table} SET last_timestamp = $1  WHERE hash=$2;",last_seen_timestamp,bin_tx_hash)
 
 async def pending_tx_expire_handler(app, expired_hash_list, conn):
-    stmt = await conn.prepare(f"DELETE FROM {app.transaction_table} WHERE hash = ANY ($1)")
-    await stmt.fetch(expired_hash_list)
+    await conn.execute(f"DELETE FROM {app.transaction_table} WHERE hash = ANY ($1)", expired_hash_list)
 
 async def confirmed_tx_expire_handler(app, conn, block_exp = 100000):
-    stmt = await conn.prepare(f"DELETE FROM {app.transaction_table} WHERE height < ($1) and affected != 'B1'")
-    await stmt.fetch(app.last_block_height-block_exp)
+    await conn.execute(f"DELETE FROM {app.transaction_table} WHERE height < ($1) and affected != 'B1'", app.last_block_height-block_exp)
 
 async def orphan_handler(app, orphan_block_height,orphan_bin_block_hash, conn):
-    stmt = await conn.prepare(f"DELETE FROM {app.block_table} WHERE hash = $1;")
-    await stmt.fetch(orphan_bin_block_hash)
-    stmt = await conn.prepare(f"UPDATE {app.transaction_table} SET height = NULL WHERE height=$1;")
-    await stmt.fetch(orphan_block_height)
+    await conn.execute(f"DELETE FROM {app.block_table} WHERE hash = $1;", orphan_bin_block_hash)
+    await conn.execute(f"UPDATE {app.transaction_table} SET height = NULL WHERE height=$1;", orphan_block_height)
 
 
