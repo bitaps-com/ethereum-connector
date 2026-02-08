@@ -29,11 +29,13 @@ async def pending_tx_update(app, bin_tx_hash, last_seen_timestamp, **kwargs):
 async def tx(app, tx, **kwargs):
     conn = kwargs.get("conn", None)
     tx["handler_result"] = 0
-    if app.tx_handler:
+    #avoid duplicates in db
+    new = True
+    if app.connector_db:
+        new = await connector_db.tx_handler(app, tx, conn)
+    if app.tx_handler and new:
         await app.tx_handler(tx, conn=conn, asset = app.asset)
         if tx["handler_result"] != 0 and tx["handler_result"] != 1: raise Exception('tx handler error')
-    if app.connector_db:
-        await connector_db.tx_handler(app, tx, conn)
 
 @transaction
 async def orphan(app,orphan_block_height,orphan_bin_block_hash, **kwargs):

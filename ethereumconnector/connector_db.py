@@ -62,7 +62,8 @@ async def block_handler(app, block, conn):
     await conn.execute(f"UPDATE {app.transaction_table} SET height = $1, timestamp=$2  WHERE hash = ANY ($3);", int(block["number"], 16), int(block['timestamp'], 16), tx_hash_list)
 
 async def tx_handler(app, tx, conn):
-    await conn.execute(f"INSERT INTO {app.transaction_table} (hash, timestamp, last_timestamp, affected) VALUES ($1, $2, $3, $4) ON CONFLICT (hash) DO NOTHING;", hex_to_bytes(tx["hash"]), tx["timestamp"], tx["timestamp"], asyncpg.BitString('1') if tx["handler_result"] else asyncpg.BitString('0'))
+    inserted = await conn.fetchval(f"INSERT INTO {app.transaction_table} (hash, timestamp, last_timestamp, affected) VALUES ($1, $2, $3, $4) ON CONFLICT (hash) DO NOTHING RETURNING 1;", hex_to_bytes(tx["hash"]), tx["timestamp"], tx["timestamp"], asyncpg.BitString('1') if tx["handler_result"] else asyncpg.BitString('0'))
+    return inserted is not None
 
 async def pending_tx_update_handler(app, bin_tx_hash,last_seen_timestamp,conn):
     await conn.execute(f"UPDATE {app.transaction_table} SET last_timestamp = $1  WHERE hash=$2;",last_seen_timestamp,bin_tx_hash)
