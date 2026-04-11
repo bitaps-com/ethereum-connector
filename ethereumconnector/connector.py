@@ -311,7 +311,11 @@ class Connector:
             await handler.block(self, block, db_pool=self.db_pool)
             for tx in block["transactions"]:
                 tx_cache = self.pending_tx_cache.pop(hex_to_bytes(tx["hash"]))
-                self.confirmed_tx_cache.set(hex_to_bytes(tx["hash"]), (block_height, tx_cache[1]))
+                if tx_cache:
+                    tx_timestamp = tx_cache[1]
+                else:
+                    tx_timestamp = int(time.time())
+                self.confirmed_tx_cache.set(hex_to_bytes(tx["hash"]), (block_height, tx_timestamp))
             self.block_cache.set(bin_block_hash, block_height)
             self.last_block_height = block_height
             if self.node_last_block > self.last_block_height:
